@@ -1,71 +1,44 @@
-# GCP Disk Auto-Expansion
+# gcp-expan-dr
 
-A CLI application for GCP instances that monitors root filesystem usage and automatically expands disks when they exceed a specified threshold.
+Automatic disk expansion tool for GCP instances that monitors root filesystem usage and expands disks when they exceed a specified threshold.
 
-## Features
+## How It Works
 
-- Verifies if the application is running on a Google Cloud Platform VM
-- Displays basic instance information:
-  - Instance ID
-  - Instance Name
-  - Project ID
-  - Zone
-- Lists all attached disks with details:
-  - Device name
-  - Disk source
-  - Disk type (Persistent Disk or Local SSD)
-  - Boot disk status
-- Monitors disks with the `gcp-expan-dr-trigger-usage` label:
-  - Checks if the disk is mounted as the root filesystem
-  - Compares current usage percentage with the threshold in the label
-  - Automatically expands disks by 10GB when they exceed the threshold
-  - Monitors resize operations and reports success or failure 
-  - Provides real-time progress updates during disk resizing
-  - Automatically extends partitions using growpart
-  - Automatically extends ext4 filesystems using resize2fs
+1. Runs on a GCP VM and identifies disks with the `gcp-expan-dr-trigger-usage` label
+2. For labeled disks mounted as root (/), checks if usage exceeds the threshold value in the label
+3. When threshold is exceeded, expands the disk by 10GB (or specified amount)
+4. After disk expansion, extends the partition and filesystem automatically
 
 ## Prerequisites
 
-The application requires:
+- Running on a GCP VM with ext4 root filesystem
+- VM service account permissions:
+  - Compute Viewer (`roles/compute.viewer`)
+  - Compute Storage Admin (`roles/compute.storageAdmin`)
+- Required tools: `growpart`, `resize2fs`
 
-1. The VM's service account to have the following IAM permissions:
-   - **Compute Viewer** (`roles/compute.viewer`) - For viewing instance and disk information
-   - **Compute Storage Admin** (`roles/compute.storageAdmin`) or permission to update disks (`compute.disks.update`) - For resizing disks
+## Installation
 
-2. For filesystem extension:
-   - `growpart`
-   - `resize2fs`
-   - `fdisk`
-
-
-## Building
-
-Build for your current platform:
-```
+```bash
+# Build locally
 go build -o gcp-expan-dr
-```
 
-Build for Linux (for GCP VMs):
-```
-GOOS=linux GOARCH=amd64 go build -o gcp-expan-dr-linux-amd64
+# Build for GCP Linux VMs
+GOOS=linux GOARCH=amd64 go build -o gcp-expan-dr
 ```
 
 ## Usage
 
-Simply run the binary on a GCP VM:
-```
+```bash
+# Run with default settings (10GB expansion)
 ./gcp-expan-dr
-```
 
-If the application is not running on a GCP VM, it will exit with an error message.
-
-### Configuration Options
-
-The application can be configured using environment variables:
-
-- `GCP_EXPAN_DR_SIZE_GB`: Sets the amount to expand disks by when they exceed the threshold (default: 10GB)
-
-Example:
-```
+# Run with custom expansion size
 GCP_EXPAN_DR_SIZE_GB=20 ./gcp-expan-dr
 ```
+
+## Configuration
+
+- **Disk Labels**: Add `gcp-expan-dr-trigger-usage=80` label to disks (threshold percentage)
+- **Environment Variables**:
+  - `GCP_EXPAN_DR_SIZE_GB`: Expansion size in GB (default: 10)
