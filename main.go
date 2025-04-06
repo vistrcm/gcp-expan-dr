@@ -52,7 +52,7 @@ func main() {
 	// Create compute service for GCP operations
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
-		log.Fatalf("can't create compute service: %v")
+		log.Fatalf("can't create compute service: %v", err)
 	}
 
 	// Get the disks attached to this instance
@@ -204,7 +204,7 @@ func resizeGCPDisk(svc *compute.Service, disksNeedingExpansion []*compute.Disk, 
 
 		// If we got here and didn't break out of the loop, we timed out
 		if time.Since(currentTime) >= diskOperationTimeout {
-			return fmt.Errorf("Operation timed out after %s, final status unknown\n", diskOperationTimeout)
+			return fmt.Errorf("operation timed out after %s, final status unknown", diskOperationTimeout)
 		}
 	}
 	return nil
@@ -375,14 +375,22 @@ type mountInfo struct {
 }
 
 // getMountInfo reads /proc/mounts to get information about mounted filesystems
-func getMountInfo() (mountInfo, error) {
+func getMountInfo() (info mountInfo, err error) {
 	mountFile, err := os.Open("/proc/mounts")
 	if err != nil {
 		return mountInfo{}, fmt.Errorf("failed to open /proc/mounts: %w", err)
 	}
-	defer mountFile.Close()
+	defer func() {
+		closeErr := mountFile.Close()
+		if closeErr != nil && err == nil {
+			err = fmt.Errorf("error closing /proc/mounts: %w", closeErr)
+		} else if closeErr != nil {
+			// Optional: combine with existing error
+			err = fmt.Errorf("original error: %w, additionally failed to close file: %v", err, closeErr)
+		}
+	}()
 
-	info := mountInfo{
+	info = mountInfo{
 		mounts: make(map[string]mount),
 	}
 
