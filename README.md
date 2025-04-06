@@ -33,9 +33,9 @@ The application requires:
    - **Compute Storage Admin** (`roles/compute.storageAdmin`) or permission to update disks (`compute.disks.update`) - For resizing disks
 
 2. For filesystem extension:
-   - `growpart` tool installed on the VM (typically included in the `cloud-utils-growpart` package)
-   - `resize2fs` tool installed on the VM (typically included in the `e2fsprogs` package)
-   - For non-ext4 filesystems, manual filesystem extension may be required after disk resizing
+   - `growpart`
+   - `resize2fs`
+   - `fdisk`
 
 
 ## Building
